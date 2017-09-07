@@ -131,14 +131,19 @@ func (o *OrderBook) RecordTopBidinRedis(productID string) error {
 	}
 
 	//redis.ScanStruct(src, dest)
-	if _, err := redisConn.Do("HMSET", productID,
+	seq := strconv.FormatInt(o.Sequence, 10)
+	if _, err := redisConn.Do("HMSET", productID+":"+seq,
 		"create-time", time.Now().UTC().Format(time.RFC3339),
-		"sequence", strconv.FormatInt(o.Sequence, 10),
+		"sequence", seq,
 		"price", maxBid.Price,
 		"size", maxBid.Size,
 		"numorders", strconv.Itoa(maxBid.NumOrders)); err != nil {
 		return err
 	}
+	if _, err := redisConn.Do("SADD", productID, seq); err != nil {
+		return err
+	}
+
 	fmt.Println("Recorded in Redis")
 	//127.0.0.1:6378> HGETALL LTC-EUR
 	return nil

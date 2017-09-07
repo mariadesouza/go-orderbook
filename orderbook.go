@@ -49,8 +49,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ch := make(chan string)
 	if download {
-		ch := make(chan string)
 		for _, product := range *products {
 			fmt.Println("Start fetch for ", product.ID)
 			go processLevel2OrderBook(product.ID, ch)
@@ -63,35 +63,50 @@ func main() {
 		log.Println("Done")
 		return
 	} else {
-		for _, product := range *products {
-			processLevel1OrderBook(product.ID)
+		for i := 0; i < 5; i++ {
+			for _, product := range *products {
+				go processLevel1OrderBook(product.ID, ch)
+			}
+			for i := 0; i < len(*products); i++ {
+				status := <-ch
+				fmt.Println(status)
+			}
 		}
 		fmt.Println("Run make client")
 		fmt.Println("Example: 127.0.0.1:6379> HGETALL LTC-EUR")
 	}
 }
 
-func processLevel1OrderBook(productID string) {
+func processLevel1OrderBook(productID string, ch chan string) {
 	fmt.Println("Getting top order for", productID)
 	orders, err := trades.GetOrderBook("1", productID)
 	if err != nil {
 		log.Println(err)
+		ch <- productID + err.Error()
+		return
 	}
 	err = orders.RecordTopBidinRedis(productID)
 	if err != nil {
 		log.Println(err)
+		ch <- productID + err.Error()
+		return
 	}
+	ch <- productID + "- Done"
 }
 
 func processLevel2OrderBook(productID string, ch chan string) {
 	orders, err := trades.GetOrderBook("2", productID)
 	if err != nil {
 		log.Println(err)
+		ch <- productID + err.Error()
+		return
 	}
 	path := filepath.Join("csv", productID)
 	err = orders.WriteToCSV(path)
 	if err != nil {
 		log.Println(err)
+		ch <- productID + err.Error()
+		return
 	}
 	ch <- productID + "- Done"
 }
