@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"go-orderbook/trades"
+	"github.com/mariadesouza/go-orderbook/trades"
 )
 
 type Product struct {

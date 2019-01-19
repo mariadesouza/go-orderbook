@@ -129,7 +129,9 @@ func (o *OrderBook) RecordTopBidinRedis(productID string) error {
 			maxBid = &b
 		}
 	}
-
+	if maxBid == nil {
+		return fmt.Errorf("not found")
+	}
 	//redis.ScanStruct(src, dest)
 	seq := strconv.FormatInt(o.Sequence, 10)
 	if _, err := redisConn.Do("HMSET", productID+":"+seq,
